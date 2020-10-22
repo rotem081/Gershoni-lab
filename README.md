@@ -5,7 +5,7 @@ files included:
 1. bulls_paramaters.xlsx
 2. test_least_square.py
 
-=  Description:  =
+#### =  Description:  =
 
 
 In this repository we arranged the procedure we used to predict fertility effects from measured sperm quality parameters.
@@ -131,4 +131,4 @@ r2 = 1 - ss_res/ss_tot
 print(result.x)
 ```
 
-=  Special Comments:  =
+#### =  Special Comments:  =
