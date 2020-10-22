@@ -1,12 +1,10 @@
-## README for:
-Regression analysis 
+# Regression analysis 
 
 files included: 
 1. bulls_paramaters.xlsx
 2. test_least_square.py
 
 ## =  Description:  =
-
 
 In this repository we arranged the procedure we used to predict fertility effects from measured sperm quality parameters.
 
