@@ -1,132 +1,107 @@
-# Regression analysis 
+# WGS analysis
+ 
+2 folders:
+1. exome database
+2. family 4
 
-files included: 
-1. bulls_paramaters.xlsx
-2. test_least_square.py
+files included in folder 'exome database'
+1. creat gvcf.txt
+2. ex_comb.txt
+3. ex_genotype.txt
+4. vep_exome.txt
+5. multisample_exome.py
+6. merge_pkl_exome.py
+7. exome_analysis.py
+
+files included in folder 'family 4'
+1. creat gvcf_family4.txt
+2. family4_comb.txt
+3. familt4_genotype.txt
+4. vep_family4.txt
+5. multisample_family4.py
+6. merge_pkl_family4.py
+7. family4_analysis.py
+8. GTEx.V8.Testis-specificity.r-scores.csv
 
 ## Description:
 
-In this repository we arranged the procedure we used to predict fertility effects from measured sperm quality parameters.
+In this repository we arranged the procedure of calling varients from whole genome sequencing.
+we use it in two different works. The first work includes establishment of database for bovine genetis 
+variations derived from whole exome sequencgin. The second work includes analysis of 5 bull's genomes
+from the same familial cluster. 
 
-In this part the sperm quality parameters that were measured by Flow-cytometry, were used to assess the correlation 
-with fertility traits. This relationship was analyzed by multiple regression with partial least squares (PLSs).
+raw data (fastq files) was undergone bioinformatics analysis:
+1. In the first work, esteblishment of the exome databse, the obtained fastq files short reads from
+the Sequences Reads Archive (SRA) from the NCBI server (https://www.ncbi.nlm.nih.gov/sra).
+2. In the second work, the genome analysis of one family, the obtined fastq files sent from the sequencing company.
 
-In the PLSs method, the measured effect value was compared to the predicted effect value, which is the linear sum of the parameters,
-each multiplied by a coefficient. The distance between the measured and predicted values is calculated using least square function. 
-
-Our goal is to find the best fit, which is the combination of coefficients that minimizes the sum square residuals.
-Since we have numerous coefficients, we need to use an efficient method to go through all possible combinations of the coefficients.
-This was done using dual_annealing function 
-
-We provide a python script to read parameters from excel file, normalized them with numpy, 
-find minimum and maximum with dual_annealing and calculate the distance between the measured and 
-predicted values is calculated using least square function
-this will enable you to reproduce the PLS figures from the work
 
 ## Environment:
-#### 1. Using Anaconda recipe:
-download python 3.7 from https://www.python.org/downloads/
-download Anaconda from https://www.anaconda.com/products/individual and Lanch speyer package (python 3.7)
+#### 1. Using mobaXterm AND HPC:
+we used high preformence computational (HPC) platform to run this WGS analysis.
+the tools and version we used in linux enveiroment: picard-v2.20.2, samtools-v1.9, 
+gatk4-v4.1.3.0, ensemblVep-v97.3 and parallelFastqDump-v0.6.5.
 
-#### 2. Using pip:
-* make sure that your virtual environment is installed with python 3.7 or more advaced version
-in the anaconda platform, click on environments > base(root) > open Terminal.
-in Terminal window download the function we used; scipy.optimize, numpy, IPython, pandas and os 
-```
-$ pip install <function_name> 
-```
+download mobaXterm server from https://mobaxterm.mobatek.net/download-home-edition.html
 
-## Datadase:
-download the database found under the name 'bulls_paramaters.xlsx', to set the parameters
+## Database:
+download Bos-taurus reference genome: 
+ftp://ftp.ensembl.org/pub/release101/fasta/bos_taurus/dna/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa.gz).
+
+upload reference genom, fastq files (sent from the sequencing company) and text files (commands)
+to the mobaXterm interface and run the commands in high preformence computational (HPC) platform
 
 ## Script:
-open python script name test_least_square.py in spyder environment and run the script.
-first we import all requierd functions:'
+the script for WGS analysis will be in text file:
+first, the path for all tools: 
 ```
-from scipy.optimize import least_squares,dual_annealing,shgo
-import numpy as np
-from IPython.display import display
-import pandas as pd
-import os
-```
-
-we defiend two functions Normalize and least_square. 
-we must adjucting values measured on different scales to a notionally common scale. 
-we used the standard score formula: paramater minus mean, diveded by standerd diviation.
-we normalized the effect values and the quality parameters values.
-
-Normalize function get one parameter, one sperm quality parameter taken from 'bulls_paramaters.xlsx',
-and return the normalized paramater
-```
-def Normalize(x):
-    mu = np.mean(x) 
-    sigma = np.std(x) 
-    return (x-mu)/sigma
+. /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
+. /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
+. /data/bin/miniconda2/envs/gatk4-v4.1.3.0/env_gatk4.sh;
+. /data/bin/miniconda2/envs/ensemblVep-v97.3/env_ensembl-vep.sh;
+. /data/bin/miniconda2/envs/parallelFastqDump-v0.6.5/env_parallel-fastq-dump.sh
 ```
 
-Least_square function get x parameter- initial guess, and return  ***
-
+we downloaded fastq files short reads from the NCBI server (https://www.ncbi.nlm.nih.gov/sra)
+with 'parallel-fastq-dump' (https://github.com/rvalieris/parallel-fastq-dump) and unzip tham
 ```
-def least_square(x): ***x??
-    # data : each row is a bull, each column is a parmeter
-    data = np.array(normalized_parameters)
-    # effect corresponding to the bulls in data. first effect belong to bull
-    # in first row and so on
-    effect = np.array(df_effect) ***why not normalized?
-  
-    return np.linalg.norm(np.dot(data,x)-effect) ***dot??
-```  
-
-we used pd.read_excel to turn data from excel to Dataframe in python
-```
-DIR = r'C:\Users\Rotem\Desktop\lab\Part A'
-# read excel file
-test = pd.read_excel(os.path.join(DIR, 'regression.xlsx'), index_col=None)
-# 25 bulls 
-bulls = test[:25]
+parallel-fastq-dump -s ERR1600413 -t 8 --tmpdir . --split-files --gzip &&
+gunzip ERR1600413_1.fastq &&
+gunzip ERR1600413_2.fastq &&
 ```
 
-we normalized the effect values and speem quality parameters, using Normalize function
+we mapped reads to the reference genome with Burrows-Wheeler Aligner (bwa) tool, using default parameters
 ```
-# the effect
-df_effect = bulls['effect'].to_numpy()
-normalized_effect = Normalize(df_effect)
-# choosen parameters
-df_parameters = bulls[['viable %', 'Depolarized  %','Viable spz ROS+',
-                   'Viable spz ROS-','Viable, intact acrosome %',
-                   'Viable, disrupted acrosome %',
-                   'Dead, disrupted acrosome %']].to_numpy()
-normalized_parameters = Normalize(df_parameters)
+bwa mem <path to reference file> <fastq_file_name_foward> <fastq_file_name_foward> > output.sam &&
 ```
 
-we set initial guess (x0)   why?
-we set bounds for variables (min, max) pairs for the parameters- randomaly we picked 20-(-20) why?
-
+Next, BAM files were locally realigned, read groups were added to the unmapped BAM files,
+PCR duplicates were removed, and clean BAM files were coordinated, sorted, and indexed by Picard tool
 ```
-# initial guess. Should have same number of elements as the number of 
-# columns in data
-x0 = np.array([0.4,0.3,0.35,0.15,1,1,0.1])
-# 7 PARAMETERS and each have max and min(2) bounderis #based on manual chack
-bounds = np.ones((7,2))*20
-bounds[:,0] *= -1 #the second column become -x
-```
-
-we used the function dual_annealing to find minimum in the function least square
-dual_annealing get function, bounds and seed and return the minimum of the function.
-```
-# dual_annealing find min in a function that it recive
-result = dual_annealing(least_square,bounds,seed = 42)
+picard RevertSam I=output.sam O=output_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+picard AddOrReplaceReadGroups I=output_u.bam O=output_rg.bam RGID=output RGSM=output RGLB=wgsim RGPU=shlee RGPL=illumina &&
+picard MergeBamAlignment ALIGNED=output.sam UNMAPPED=output_rg.bam O=output_m.bam R=<path to reference file> 
+SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+picard MarkDuplicates INPUT=output_m.bam OUTPUT=output_md.bam METRICS_FILE=output_md.bam.txt OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
+set -o pipefail;
+picard SortSam INPUT=output_md.bam OUTPUT=output_sorted.bam SORT_ORDER=coordinate &&
+picard SetNmMdAndUqTags R=<path to reference file> INPUT=output_sorted.bam OUTPUT=output_snaut.bam CREATE_INDEX=true &&
 ```
 
+After BAM files were created for every sample, variant calling was done with the Genome Analysis Tool kit (GATK, version 4.1.6.0)
+as recommended by the GATK workflow (link to our GitHub: WGS analysis). Call SNPs (single nucleotide polymorphism) 
+and indels (insertion and deletion) variants via local re-assembly of haplotypes was generate by HaplotypeCaller, 
+and then an intermediate GVCF (genome variants call file) was generate per sample. 
+GVCF can be used for joint genotyping of multiple samples in a very efficient way. 
+Genotyping files were produced after all samples were combined with CombineGVCFs, by using GenotypeGVCFs (Figure 3).
+The variants were annotated by using Variant Effect Predictor (VEP) and assessed for their relevance to the phenotype (see result for future description). Then, filtering was done using a dedicated python script that uses the VCF parser (PyVCF). 
+Variants were removed if they had quality score less than <30.
 
-```
-# the effect is defined here again to calculate r^2
-effect = np.array(normalized_effect)
-ss_tot = sum((effect-np.mean(effect))**2)
-ss_res = least_square(result.x)**2
-r2 = 1 - ss_res/ss_tot
 
-print(result.x)
-```
+
+gatk HaplotypeCaller -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -I ERR1600413_snaut.bam -O ERR1600413.g.vcf -ERC GVCF -bamout ERR1600413_hc.bam &&
+
+
+
 
 ## Special Comments:
