@@ -16,24 +16,25 @@ we builet dedicated python script, that uses the VCF parser (PyVCF), to filter a
 
 first, Variants were removed if they had quality score less than <30.
 ## Environment:
-#### 1. Using mobaXterm and spyder:
-we downloaded the annoteted multi-sample varients file (discussed in 'WGS anaysis') 
-from the UNIX enviroment (from mobaXterm server) to windows.
+#### 1. Using mobaXterm and anaconda:
+* make sure that your virtual environment is installed with python 3.7 or more advaced version
+in the anaconda platform, click on environments > base(root) > open Terminal.
+in Terminal window download the function we used; numpy, pandas, PyVCF, itertools,datetime, time, os
+```
+$ pip install <function_name> 
+```
 
 ## Database:
 download csv file with list of genes that expressed in the testis and the level of expression: 
 GTEx.V8.Testis-specificity.r-scores.csv.
 
-download python libraries and packages : numpy, pandas, PyVCF, itertools,datetime, time, os
+we downloaded the annoteted multi-sample varients file (discussed in 'WGS anaysis') 
+from the UNIX enviroment (from mobaXterm server) to windows.
 
 ## Script: (create_gvcf.txt)
-the script divieded to 3 differente scripts:
-script 1. multisample_family4.py
-script 2. merge_pkl_family4.py
-script 3. family4_analysis.py
+open python script name multisample_family4.py in spyder and run the script.
+first we import all requierd functions:
 
-script 1. 
-first, import all the libreries 
 ```
 import numpy as np
 import pandas as pd
@@ -44,8 +45,8 @@ import time
 import os
 ```
 
-we downloaded fastq files short reads from the NCBI server (https://www.ncbi.nlm.nih.gov/sra)
-with 'parallel-fastq-dump' (https://github.com/rvalieris/parallel-fastq-dump) and unzip tham
+define get_data_from_record function. the function get one record (line) form the multi-sample varients file.
+and retrun a dataframe
 
 ```
 def get_data_from_record(record):
@@ -65,8 +66,7 @@ def get_data_from_record(record):
     return data
 ```
 
-We begin by mapping the sequence reads to the reference genome to produce a file in SAM format
-with Burrows-Wheeler Aligner (bwa) tool, using default parameters
+we defiened the dataframe's columns  
 
 ```
 columns = ['Chromosome',
@@ -81,19 +81,25 @@ columns = ['Chromosome',
            'GT:artist',
            'GT:garden',
            'GT:jermin']
-```
-
-Next, we create an unmapped BAM file with Picard tool
-
-```
+           
 df = pd.DataFrame(columns=columns)
-reader = vcf.Reader(filename=r'C:\Users\Rotem\Desktop\lab\Part A\family 4 analysis\variant_effect_output_family_4.vcf.gz', compressed=False)
+```
+
+we read multi-sample varients file 
+and print the samples count (5 bulls in family 4)
+
+```
+reader = vcf.Reader(filename=r'path\variant_effect_output.vcf.gz', compressed=False)
 print(len(reader.samples)) #samples count
-print(reader.samples[:10])
 
 ```
 
-first processing step is performed per-read group
+we than update the dataframe in a loop; 'get_data_from_record' function works on 1000 records every time
+until the end of the reader. the output appended to the dataframe
+we print the time left for the end of the dataframe biulding 
+when 100,000 passes, we convert df to pickle file with the simple function 'df.to_pickle'
+and reset a new dataframe.
+in the end, all pickle files saved in a dedecated folder on the computer.
 
 ```
 counter = 1 #update rows that done
@@ -123,16 +129,21 @@ try:
             file_counter +=1
 except:
     df.to_pickle(f'result{file_counter:03}.pkl')
-    raise #raise the error
+    raise  #raise the error
 ```
 
-b. 
+open python script name merge_pkl_family4.py in spyder and run the script.
+first we import all requierd functions:
 ```
 import numpy as np
 import glob 
 import pandas as pd
 files = glob.glob('*.pkl') #find all the files type pkl
+```
 
+
+
+```
 df = pd.read_pickle(files[0])
 columns = df.columns
 #if we want only the missence/deleterious mutations
