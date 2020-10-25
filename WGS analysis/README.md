@@ -65,43 +65,90 @@ first, the path for all tools:
 we downloaded fastq files short reads from the NCBI server (https://www.ncbi.nlm.nih.gov/sra)
 with 'parallel-fastq-dump' (https://github.com/rvalieris/parallel-fastq-dump) and unzip tham
 ```
-parallel-fastq-dump -s ERR1600413 -t 8 --tmpdir . --split-files --gzip &&
-gunzip ERR1600413_1.fastq &&
-gunzip ERR1600413_2.fastq &&
+parallel-fastq-dump -s <sample_name> -t 8 --tmpdir . --split-files --gzip &&
+gunzip <fastq_file_name_foward> &&
+gunzip <fastq_file_name_reverse> &&
 ```
 
-we mapped reads to the reference genome with Burrows-Wheeler Aligner (bwa) tool, using default parameters
+We begin by mapping the sequence reads to the reference genome to produce a file in SAM format
+with Burrows-Wheeler Aligner (bwa) tool, using default parameters
 ```
-bwa mem <path to reference file> <fastq_file_name_foward> <fastq_file_name_foward> > output.sam &&
+bwa mem ./path to reference file <fastq_file_name_foward> <fastq_file_name_reverse> > output.sam &&
 ```
 
-Next, BAM files were locally realigned, read groups were added to the unmapped BAM files,
-PCR duplicates were removed, and clean BAM files were coordinated, sorted, and indexed by Picard tool
+Next, we create an unmapped BAM file with Picard tool
 ```
 picard RevertSam I=output.sam O=output_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+```
+
+first processing step is performed per-read group
+```
 picard AddOrReplaceReadGroups I=output_u.bam O=output_rg.bam RGID=output RGSM=output RGLB=wgsim RGPU=shlee RGPL=illumina &&
-picard MergeBamAlignment ALIGNED=output.sam UNMAPPED=output_rg.bam O=output_m.bam R=<path to reference file> 
-SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
-picard MarkDuplicates INPUT=output_m.bam OUTPUT=output_md.bam METRICS_FILE=output_md.bam.txt OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
+```
+
+we produced a third BAM file (output_m.bam) that has alignment data (output.sam)
+and all the remaining data from the unmapped BAM (output_rg.bam)
+--SORT_ORDER: The order in which the merged reads should be output
+--CLIP_ADAPTERS: Whether to clip adapters where identified
+--ADD_MATE_CIGAR: add the MC tag to each read
+--MAX_INSERTIONS_OR_DELETIONS: The maximum number of insertions or deletions permitted for an alignment to be included.
+Set to -1 to allow any number of insertions or deletions.
+--PRIMARY_ALIGNMENT_STRATEGY: Strategy for selecting primary alignment when the aligner has provided more than 
+one alignment for a pair or fragment.
+--UNMAP_CONTAMINANT_READS: Whether to identify extremely short alignments as cross-species contamination
+and unmap the reads. 
+--ATTRIBUTES_TO_RETAIN : Attributes from the alignment record that should be removed when merging
+```
+picard MergeBamAlignment ALIGNED=output.sam UNMAPPED=output_rg.bam O=output_m.bam R= ./path to reference file
+SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 
+PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+```
+
+we mark duplicates to mitigate biases introduced by data generation steps such as PCR amplificatio.
+MarkDuplicates followed by SortSam
+--OPTICAL_DUPLICATE_PIXEL_DISTANCE: The maximum offset between two duplicate clusters in order to
+consider them optical duplicates. The default is appropriate for unpatterned versions of the 
+Illumina platform. For the patterned flowcell models, 2500 is moreappropriate. 
+```
+picard MarkDuplicates INPUT=output_m.bam OUTPUT=output_md.bam METRICS_FILE=output_md.bam.txt 
+OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
 set -o pipefail;
 picard SortSam INPUT=output_md.bam OUTPUT=output_sorted.bam SORT_ORDER=coordinate &&
+```
+
+we used SetNmMdAndUqTags, that takes in a coordinate-sorted BAM and calculate the NM, MD and UQ by compating with the reference
+NM = Edit distance to the reference
+MD = String encoding mismatched and deleted reference bases
+UQ = Phred likelihood of the segment, conditional on the mapping being correct
+```
 picard SetNmMdAndUqTags R=<path to reference file> INPUT=output_sorted.bam OUTPUT=output_snaut.bam CREATE_INDEX=true &&
 ```
 
-After BAM files were created for every sample, variant calling was done with the Genome Analysis Tool kit (GATK, version 4.1.6.0)
-as recommended by the GATK workflow (link to our GitHub: WGS analysis). Call SNPs (single nucleotide polymorphism) 
-and indels (insertion and deletion) variants via local re-assembly of haplotypes was generate by HaplotypeCaller, 
-and then an intermediate GVCF (genome variants call file) was generate per sample. 
-GVCF can be used for joint genotyping of multiple samples in a very efficient way. 
-Genotyping files were produced after all samples were combined with CombineGVCFs, by using GenotypeGVCFs (Figure 3).
-The variants were annotated by using Variant Effect Predictor (VEP) and assessed for their relevance to the phenotype (see result for future description). Then, filtering was done using a dedicated python script that uses the VCF parser (PyVCF). 
-Variants were removed if they had quality score less than <30.
+Call SNPs and indels variants via local re-assembly of haplotypes was generate by HaplotypeCaller.
+what spiceal in HaplotypeCaller is that, whenever the program encounters a region showing signs of variation,
+it discards the existing mapping information and completely reassembles the reads in that region.
+This allows the HaplotypeCaller to be more accurate when calling regions that are traditionally
+difficult to call (output_hc.bam)
+```
+gatk HaplotypeCaller -R ./path to reference file -I output_snaut.bam -O output.g.vcf -ERC GVCF -bamout output_hc.bam &&
+```
+
+HaplotypeCaller runs per-sample to generate an intermediate GVCF (output.g.vcf).
+after we run all samples, we generat GVCF by using CombineGVCFs.
+this done in parralel, using 64 cores and 280 memory in the HPC options
+```
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R ./path to reference file -V output_sample_1.g.vcf -V output_sample_2.g.vcf -V output_sample_3.g.vcf -V .... -O combine_all.g.vcf;
+```
+
+this combine_all file than be used in GenotypeGVCFs for joint genotyping of multiple samples
+```
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 
+-XX:+UseTLAB" GenotypeGVCFs -R ./path to reference file -V combine_all.g.vcf -O multisample.vcf;
+```
+
+Finally, we used Variant Effect Predictor (VEP) for annotation
 
 
-
-gatk HaplotypeCaller -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -I ERR1600413_snaut.bam -O ERR1600413.g.vcf -ERC GVCF -bamout ERR1600413_hc.bam &&
-
+now, we have annotated variants file that can be fillterb, detalied in ___
 
 
-
-## Special Comments:
