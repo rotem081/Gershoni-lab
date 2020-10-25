@@ -54,9 +54,9 @@ to the mobaXterm interface and run the commands in high preformence computationa
 downloaded ensembl-vep package, follow installation instructions:
 https://m.ensembl.org/info/docs/tools/vep/script/vep_download.html#installer
 
-## Script:
+## Script: (create_gvcf.txt)
 the script for WGS analysis will be in text file:
-first, the path for all tools: 
+first, the path for all tools will be deateild:
 
 ```
 . /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
