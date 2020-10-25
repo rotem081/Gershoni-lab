@@ -1,0 +1,6 @@
+.  /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
+.  /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
+.  /data/bin/miniconda2/envs/gatk4-v4.1.6.0/env_gatk4.sh;
+.  /data/bin/miniconda2/envs/ensemblVep-v98.2/env_ensembl-vep.sh;
+
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -V combine_file_1.g.vcf -V combine_file_2.g.vcf -V combine_file_3.g.vcf -V combine_file_4_1.g.vcf -V combine_file_4_2.g.vcf -V combine_file_5.g.vcf -V combine_file_6.g.vcf -V combine_file_7.g.vcf -V combine_file_8.g.vcf -V combine_file_9.g.vcf -V combine_file_10.g.vcf -V combine_file_11.g.vcf -V combine_file_12.g.vcf -V combine_file_13.g.vcf -V combine_file_14.g.vcf -V combine_file_15.g.vcf -V combine_file_16.g.vcf -V combine_file_17.g.vcf -V combine_file_18.g.vcf -V combine_file_19.g.vcf -V combine_file_20.g.vcf -O combine_all_exomes.g.vcf;
