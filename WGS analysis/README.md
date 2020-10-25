@@ -5,7 +5,7 @@
 2. family 4
 
 files included in folder 'exome database'
-1. creat gvcf.txt
+1. create gvcf.txt
 2. ex_comb.txt
 3. ex_genotype.txt
 4. vep_exome.txt
@@ -14,7 +14,7 @@ files included in folder 'exome database'
 7. exome_analysis.py
 
 files included in folder 'family 4'
-1. creat gvcf_family4.txt
+1. create gvcf_family4.txt
 2. family4_comb.txt
 3. familt4_genotype.txt
 4. vep_family4.txt
