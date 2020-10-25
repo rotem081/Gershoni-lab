@@ -1,4 +1,4 @@
-# verients filtretion of 5 bulls (family 4)
+# varients filtretion of 5 bulls (family 4)
 
 list of files:
 1. create gvcf_family4.txt (discussed in 'WGS anaysis')
@@ -11,159 +11,254 @@ list of files:
 8. GTEx.V8.Testis-specificity.r-scores.csv
 
 ## Description:
-The variants were annotated by using Variant Effect Predictor (VEP) and assessed for their relevance to the phenotype (see result for future description). Then, filtering was done using a dedicated python script that uses the VCF parser (PyVCF). Variants were removed if they had quality score less than <30.
+In this repository we arranged the procedure of assessment of genomic varients.
+we builet dedicated python script, that uses the VCF parser (PyVCF), to filter and assess the varients. 
 
-In this repository we arranged the procedure of calling varients from whole genome sequencing.
-we use it in two different works. The first work includes establishment of database for bovine genetis 
-variations derived from whole exome sequencgin. The second work includes analysis of 5 bull's genomes
-from the same familial cluster. 
-
-raw data (fastq files) was undergone bioinformatics analysis:
-1. In the first work, esteblishment of the exome databse, the obtained fastq files short reads from
-the Sequences Reads Archive (SRA) from the NCBI server (https://www.ncbi.nlm.nih.gov/sra).
-2. In the second work, the genome analysis of one family, the obtined fastq files sent from the sequencing company.
-
-
+first, Variants were removed if they had quality score less than <30.
 ## Environment:
-#### 1. Using mobaXterm AND HPC:
-we used high preformence computational (HPC) platform to run this WGS analysis.
-the tools and version we used in linux enveiroment: picard-v2.20.2, samtools-v1.9, 
-gatk4-v4.1.3.0, ensemblVep-v97.3 and parallelFastqDump-v0.6.5.
-
-download mobaXterm server from https://mobaxterm.mobatek.net/download-home-edition.html
+#### 1. Using mobaXterm and spyder:
+we downloaded the annoteted multi-sample varients file (discussed in 'WGS anaysis') 
+from the UNIX enviroment (from mobaXterm server) to windows.
 
 ## Database:
-download Bos-taurus reference genome: 
-ftp://ftp.ensembl.org/pub/release101/fasta/bos_taurus/dna/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa.gz).
+download csv file with list of genes that expressed in the testis and the level of expression: 
+GTEx.V8.Testis-specificity.r-scores.csv.
 
-upload reference genom, fastq files (sent from the sequencing company) and text files (commands)
-to the mobaXterm interface and run the commands in high preformence computational (HPC) platform
-
-downloaded ensembl-vep package, follow installation instructions:
-https://m.ensembl.org/info/docs/tools/vep/script/vep_download.html#installer
+download python libraries and packages : numpy, pandas, PyVCF, itertools,datetime, time, os
 
 ## Script: (create_gvcf.txt)
-the script for WGS analysis will be in text file:
-first, the path for all tools will be deateild:
+the script divieded to 3 differente scripts:
+script 1. multisample_family4.py
+script 2. merge_pkl_family4.py
+script 3. family4_analysis.py
 
+script 1. 
+first, import all the libreries 
 ```
-. /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
-. /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
-. /data/bin/miniconda2/envs/gatk4-v4.1.3.0/env_gatk4.sh;
-. /data/bin/miniconda2/envs/ensemblVep-v97.3/env_ensembl-vep.sh;
-. /data/bin/miniconda2/envs/parallelFastqDump-v0.6.5/env_parallel-fastq-dump.sh
+import numpy as np
+import pandas as pd
+import vcf
+from itertools import islice
+import datetime
+import time
+import os
 ```
 
 we downloaded fastq files short reads from the NCBI server (https://www.ncbi.nlm.nih.gov/sra)
 with 'parallel-fastq-dump' (https://github.com/rvalieris/parallel-fastq-dump) and unzip tham
 
 ```
-parallel-fastq-dump -s <sample_name> -t 8 --tmpdir . --split-files --gzip &&
-gunzip <fastq_file_name_foward> &&
-gunzip <fastq_file_name_reverse> &&
+def get_data_from_record(record):
+    data = [record.CHROM,
+                record.POS,
+                record.REF,
+                record.ALT[0].sequence,
+                record.QUAL,
+                record.INFO['CSQ'][0].split('|')[1],
+                record.INFO['CSQ'],
+                record.samples[0].gt_alleles,
+                record.samples[1].gt_alleles,
+                record.samples[2].gt_alleles,
+                record.samples[3].gt_alleles,
+                record.samples[4].gt_alleles]
+
+    return data
 ```
 
 We begin by mapping the sequence reads to the reference genome to produce a file in SAM format
 with Burrows-Wheeler Aligner (bwa) tool, using default parameters
 
 ```
-bwa mem ./path to reference file <fastq_file_name_foward> <fastq_file_name_reverse> > output.sam &&
+columns = ['Chromosome',
+           'Position',
+           'Reference',
+           'Alternate',
+           'Quality',
+           'Consequences',
+           'mutation',
+           'GT:Jey-Jey',
+           'GT:Jhey',
+           'GT:artist',
+           'GT:garden',
+           'GT:jermin']
 ```
 
 Next, we create an unmapped BAM file with Picard tool
 
 ```
-picard RevertSam I=output.sam O=output_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+df = pd.DataFrame(columns=columns)
+reader = vcf.Reader(filename=r'C:\Users\Rotem\Desktop\lab\Part A\family 4 analysis\variant_effect_output_family_4.vcf.gz', compressed=False)
+print(len(reader.samples)) #samples count
+print(reader.samples[:10])
+
 ```
 
 first processing step is performed per-read group
 
 ```
-picard AddOrReplaceReadGroups I=output_u.bam O=output_rg.bam RGID=output RGSM=output RGLB=wgsim RGPU=shlee RGPL=illumina &&
+counter = 1 #update rows that done
+start = time.time() #start time
+file_counter = 1 #count the files
+
+#if there is an error , the file will saved
+try:
+    while True:         
+        #islice: get next 1000 items/rows from reader. if there isnt, he set none
+        #map: get array and set the function on it
+        df = df.append(pd.DataFrame(map(get_data_from_record,islice(reader,1000)),columns=columns)) 
+        
+        if len(df) == 0:
+            break
+        
+        #time now -time start in seconds
+        time_passed = time.time()-start
+        time_left = time_passed/counter/1000*20550107-time_passed  #to know number of rows- linux: wc -l
+        print(f'{counter*1000} done. Time elapse : {str(datetime.timedelta(seconds=np.floor(time_passed)))}. ETA: {str(datetime.timedelta(seconds=np.floor(time_left)))}')
+        #ETA: estimate time of arrival
+        counter +=1
+        if np.mod(counter,100) == 0: #pass 100,000 rows
+            df.to_pickle(f'result{file_counter:03}.pkl') #save file           
+            print(f'saved progress in file number {file_counter:03}')
+            df = pd.DataFrame(columns=columns) #update new dataframe
+            file_counter +=1
+except:
+    df.to_pickle(f'result{file_counter:03}.pkl')
+    raise #raise the error
 ```
 
-we produced a third BAM file (output_m.bam) that has alignment data (output.sam)
-and all the remaining data from the unmapped BAM (output_rg.bam)
-
---SORT_ORDER: The order in which the merged reads should be output
-
---CLIP_ADAPTERS: Whether to clip adapters where identified
-
---ADD_MATE_CIGAR: add the MC tag to each read
-
---MAX_INSERTIONS_OR_DELETIONS: The maximum number of insertions or deletions permitted for an alignment to be included.
-Set to -1 to allow any number of insertions or deletions.
-
---PRIMARY_ALIGNMENT_STRATEGY: Strategy for selecting primary alignment when the aligner has provided more than 
-one alignment for a pair or fragment.
-
---UNMAP_CONTAMINANT_READS: Whether to identify extremely short alignments as cross-species contamination
-and unmap the reads. 
-
---ATTRIBUTES_TO_RETAIN : Attributes from the alignment record that should be removed when merging
-
+b. 
 ```
-picard MergeBamAlignment ALIGNED=output.sam UNMAPPED=output_rg.bam O=output_m.bam R= ./path to reference file
-SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 
-PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
-```
+import numpy as np
+import glob 
+import pandas as pd
+files = glob.glob('*.pkl') #find all the files type pkl
 
-we mark duplicates to mitigate biases introduced by data generation steps such as PCR amplificatio.
-MarkDuplicates followed by SortSam
---OPTICAL_DUPLICATE_PIXEL_DISTANCE: The maximum offset between two duplicate clusters in order to
-consider them optical duplicates. The default is appropriate for unpatterned versions of the 
-Illumina platform. For the patterned flowcell models, 2500 is moreappropriate. 
+df = pd.read_pickle(files[0])
+columns = df.columns
+#if we want only the missence/deleterious mutations
+#df = df[df['mutation'].str.contains('missense|deleterious')].dropna()
+file_counter=1
+for i in range(1,len(files)):
+    print(f'finised {i}') #how many finished
+    df = df.append(pd.read_pickle(files[i])) #mearge all
+    if np.mod(i,10) == 0: #pass 10 pickles
+        df.to_pickle(f'merge{file_counter:03}.pkl') #save file           
+        print(f'saved progress in merge {file_counter:03}')
+        df = pd.DataFrame(columns=columns) #update new dataframe
+        file_counter +=1
 
-```
-picard MarkDuplicates INPUT=output_m.bam OUTPUT=output_md.bam METRICS_FILE=output_md.bam.txt 
-OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
-set -o pipefail;
-picard SortSam INPUT=output_md.bam OUTPUT=output_sorted.bam SORT_ORDER=coordinate &&
+df.to_pickle(f'merge{file_counter:03}.pkl') #save file           
+print(f'saved progress in merge {file_counter:03}') # :03 three digits
 ```
 
-we used SetNmMdAndUqTags, that takes in a coordinate-sorted BAM and calculate the NM, MD and UQ by compating with the reference
-NM = Edit distance to the reference
-MD = String encoding mismatched and deleted reference bases
-UQ = Phred likelihood of the segment, conditional on the mapping being correct
-
+c.
 ```
-picard SetNmMdAndUqTags R=<path to reference file> INPUT=output_sorted.bam OUTPUT=output_snaut.bam CREATE_INDEX=true &&
-```
+import glob 
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib
+import re
+font = {'family' : 'normal',
+        'size'   : 18}
 
-Call SNPs and indels variants via local re-assembly of haplotypes was generate by HaplotypeCaller.
-what spiceal in HaplotypeCaller is that, whenever the program encounters a region showing signs of variation,
-it discards the existing mapping information and completely reassembles the reads in that region.
-This allows the HaplotypeCaller to be more accurate when calling regions that are traditionally
-difficult to call (output_hc.bam).
-for more deteild of how HaplotypeCaller work do to https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller
+matplotlib.rc('font', **font)
 
-```
-gatk HaplotypeCaller -R ./path to reference file -I output_snaut.bam -O output.g.vcf -ERC GVCF -bamout output_hc.bam &&
-```
+global allele
+allele=[['1','1'],['0','0']]
 
-HaplotypeCaller runs per-sample to generate an intermediate GVCF (output.g.vcf).
-after we run all samples, we generat GVCF by using CombineGVCFs.
-this done in parralel, using 64 cores and 280 memory in the HPC options
+#mutations
+global mutation_list
+mutation_list = ['transcript_ablation','splice_acceptor_variant', 'splice_donor_variant',
+                 'stop_gained','frameshift_variant','stop_lost','start_lost',
+                 'transcript_amplification','inframe_insertion','inframe_deletion',
+                 'missense_variant','protein_altering_variant','splice_region_variant',
+                 'incomplete_terminal_codon_variant','start_retained_variant',
+                 'stop_retained_variant','synonymous_variant','coding_sequence_variant',
+                 'mature_miRNA_variant','5_prime_UTR_variant','3_prime_UTR_variant']
 
-```
-gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R ./path to reference file -V output_sample_1.g.vcf -V output_sample_2.g.vcf -V output_sample_3.g.vcf -V .... -O combine_all.g.vcf;
-```
+#gene expression testis
+file_path = r'C:\Users\Rotem\Desktop\lab\Part A\family 4 analysis\GTEx.V8.Testis-specificity.r-scores.csv'
 
-this combine_all file than be used in GenotypeGVCFs for joint genotyping of multiple samples
+#testis df
+df_testis = pd.read_csv(file_path,sep='\t')
+df_testis[['ENS','genes','r-testis']] =df_testis['Name,Description,r-testis'].str.split(',', expand=True)
+df_testis.drop('Name,Description,r-testis', axis=1, inplace=True)
 
-```
-gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 
--XX:+UseTLAB" GenotypeGVCFs -R ./path to reference file -V combine_all.g.vcf -O multisample.vcf;
-```
+#df_testis_score=df_testis[['Gene','RNA tissue specificity score']]
+#df_testis_score.to_excel('testis_score.xlsx')
+#gene_testis_human = []
+#gene_testis_human=df_testis['genes'].values.tolist()
 
-Finally, we used Variant Effect Predictor (VEP) for annotation.
-after we installed vEnsemble API and cache files of --species bos_taurus,
-we used a cache (--cache), which is the fastest and most efficient way to use VEP.
-we also used offline mode to eliminate all network connections for speed.
+#exome df
+df_exome = pd.read_pickle(r'C:\Users\Rotem\Desktop\lab\gatk\merged_exome.pkl')
+#filter <10 samples
+df_exome = df_exome.where(df_exome['samples count'] > 10).dropna()
 
-```
-vep -i multisample.vcf --format vcf -o variant_effect_output.vcf --vcf --fields Allele,Consequence,IMPACT,SYMBOL,Gene,Feature_type,Feature,BIOTYPE,EXON,INTRON,HGVSc,HGVSp,cDNA_position,CDS_position,
-Protein_position,Amino_acids,Codons,Existing_variation,SYMBOL_SOURCE,GENE_PHENO,SIFT,AF --species bos_taurus --cache
---fasta ./path to reference file in VEP --offline --dir_cache ./path Cache --dir_plugins ./path Plugins 
---synonyms ./path chr_synonyms.txt -e -fork 14 --force_overwrit 
+def remove_space(lst):
+    lst = lst[0].split('|')
+    return ' '.join(lst).split()
+
+def test_garden(record):
+    if record in allele:
+        return True
+    
+def test_bulls(record):
+    if record not in allele:
+        return True
+
+def testis(lst):
+    return any([gene in lst for gene in df_testis['genes']])
+
+def all_mut(lst):
+    return any([mutation in lst for mutation in mutation_list])
+
+def gene_name(lst):
+    return lst[3]
+
+#def score(gene):
+#    return df_testis_score.loc[df_testis_score['Gene']==gene]
+
+#family 4 data frame
+files = glob.glob('merge*.pkl') #find all the files type pkl
+df = pd.read_pickle(files[0])
+columns = df.columns
+
+df_mut = pd.DataFrame(columns=columns)
+
+for num in range(1,len(files)+1):
+    file_path = fr'C:\Users\Rotem\Desktop\lab\Part A\family 4 analysis\merge{num:03}.pkl'
+    df= pd.read_pickle(file_path)
+    #filter low quality reads
+    df = df.where(df['Quality'] > 30).dropna()
+    #merge exome and family 4
+    df = pd.merge(df, df_exome[['Chromosome','Position','Alternate',
+                                    'Allele frequency','Allele number','Inbreeding']], how='left',
+                  left_on=['Chromosome','Position','Alternate'],
+                  right_on = ['Chromosome','Position','Alternate'])
+    
+    #without AF 0
+    df['Allele frequency'].fillna(0, inplace = True)
+    
+    #garden homo, the other bulls hetro
+    df_garden_homo = df.where((df['GT:garden'].apply(test_garden)) &
+                              (df['GT:Jey-Jey'].apply(test_bulls)) &
+                              (df['GT:Jhey'].apply(test_bulls)) &
+                              (df['GT:jermin'].apply(test_bulls)) &
+                              (df['GT:artist'].apply(test_bulls))).dropna()
+    #filter only AF < 0.5
+    df_garden_homo = df_garden_homo[df_garden_homo['Allele frequency'] < 0.5]
+
+    #filter mutations
+    df_garden_homo['mutation'] = df_garden_homo['mutation'].apply(remove_space)
+    df_garden_homo['all_mut'] = df_garden_homo['mutation'].apply(all_mut)
+    df_mut = df_mut.append(df_garden_homo.where(df_garden_homo['all_mut']==True).dropna()) 
+    #df_mut['testis'] = df_mut['mutation'].apply(testis)
+df_mut['mutation_gene_name'] = df_mut['mutation'].apply(gene_name)
+df_mut = pd.merge(df_mut, df_testis[['genes','r-testis']], how='left',left_on=['mutation_gene_name'],right_on = ['genes'])
+    #df_mut['mutation_gene_name'].apply(score)
+    #df_testis =  df_testis.append(df_mut.where(df_mut['testis']==True).dropna())
+
+df_mut.to_excel(f'all_mut_merge{num:03}.xlsx')
+
 ```
