@@ -1,31 +1,17 @@
-# Gershoni-s-lab
-all files and programs (Rotem's thesis)
-# WGS analysis
- 
-2 folders:
-1. exome database
-2. family 4
+# verients filtretion of 5 bulls (family 4)
 
-files included in folder 'exome database'
-1. create gvcf.txt
-2. ex_comb.txt
-3. ex_genotype.txt
-4. vep_exome.txt
-5. multisample_exome.py
-6. merge_pkl_exome.py
-7. exome_analysis.py
-
-files included in folder 'family 4'
-1. create gvcf_family4.txt
-2. family4_comb.txt
-3. familt4_genotype.txt
-4. vep_family4.txt
+list of files:
+1. create gvcf_family4.txt (discussed in 'WGS anaysis')
+2. family4_comb.txt (discussed in 'WGS anaysis')
+3. familt4_genotype.txt (discussed in 'WGS anaysis')
+4. vep_family4.txt (discussed in 'WGS anaysis')
 5. multisample_family4.py
 6. merge_pkl_family4.py
 7. family4_analysis.py
 8. GTEx.V8.Testis-specificity.r-scores.csv
 
 ## Description:
+The variants were annotated by using Variant Effect Predictor (VEP) and assessed for their relevance to the phenotype (see result for future description). Then, filtering was done using a dedicated python script that uses the VCF parser (PyVCF). Variants were removed if they had quality score less than <30.
 
 In this repository we arranged the procedure of calling varients from whole genome sequencing.
 we use it in two different works. The first work includes establishment of database for bovine genetis 
