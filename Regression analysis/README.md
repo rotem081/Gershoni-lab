@@ -26,7 +26,7 @@ this will enable you to reproduce the PLS figures from the work
 ## Environment:
 #### 1. Using Anaconda recipe:
 download python 3.7 from https://www.python.org/downloads/
-download Anaconda from https://www.anaconda.com/products/individual and Lanch speyer package (python 3.7)
+<br> download Anaconda from https://www.anaconda.com/products/individual and Lanch speyer package (python 3.7)
 
 #### 2. Using pip:
 * make sure that your virtual environment is installed with python 3.7 or more advaced version
