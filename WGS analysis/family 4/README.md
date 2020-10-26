@@ -134,26 +134,26 @@ except:
 
 open python script name merge_pkl_family4.py in spyder and run the script.
 first we import all requierd functions:
+
 ```
 import numpy as np
 import glob 
 import pandas as pd
 files = glob.glob('*.pkl') #find all the files type pkl
 ```
-
-
+we read the files, one after the other, and convert it to dataframe
+we update the dataframe and print a massage about the progress
+In the end, we create several merged pickle files, contain 10 simple pickle files
 
 ```
 df = pd.read_pickle(files[0])
 columns = df.columns
-#if we want only the missence/deleterious mutations
-#df = df[df['mutation'].str.contains('missense|deleterious')].dropna()
 file_counter=1
 for i in range(1,len(files)):
     print(f'finised {i}') #how many finished
     df = df.append(pd.read_pickle(files[i])) #mearge all
     if np.mod(i,10) == 0: #pass 10 pickles
-        df.to_pickle(f'merge{file_counter:03}.pkl') #save file           
+        df.to_pickle(f'merge{file_counter:03}.pkl')            
         print(f'saved progress in merge {file_counter:03}')
         df = pd.DataFrame(columns=columns) #update new dataframe
         file_counter +=1
@@ -162,7 +162,9 @@ df.to_pickle(f'merge{file_counter:03}.pkl') #save file
 print(f'saved progress in merge {file_counter:03}') # :03 three digits
 ```
 
-c.
+open python script name family4_analysis.py in spyder and run the script.
+first we import all requierd functions:
+
 ```
 import glob 
 import pandas as pd
@@ -170,6 +172,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
 import re
+```
+
+we defenied allele list, mutation_list, list of gene expressed in testis,
+the dataframe of exome database  and several short function that help us with the analysis
+
+```
 font = {'family' : 'normal',
         'size'   : 18}
 
@@ -226,11 +234,16 @@ def all_mut(lst):
 
 def gene_name(lst):
     return lst[3]
+```
 
-#def score(gene):
-#    return df_testis_score.loc[df_testis_score['Gene']==gene]
-
-#family 4 data frame
+we create a loop that pass on each merge pickle file, extract importent info to a dataframe.
+we filterd low quality reads.
+we merged data from the exome database to our new dataframe: Allele frequency,Allele number and Inbreeding.
+we filtered variatent that have this pattern of gynotype: garden is homozygot and the other bulls are hetrozygot (df_garden_homo)
+we filtered variatent that have AF > 0.5
+we added a column with name of effect/consequences of the varient ('mutation')
+```
+#family 4 dataframe
 files = glob.glob('merge*.pkl') #find all the files type pkl
 df = pd.read_pickle(files[0])
 columns = df.columns
@@ -248,7 +261,7 @@ for num in range(1,len(files)+1):
                   left_on=['Chromosome','Position','Alternate'],
                   right_on = ['Chromosome','Position','Alternate'])
     
-    #without AF 0
+    #without AF set 0
     df['Allele frequency'].fillna(0, inplace = True)
     
     #garden homo, the other bulls hetro
@@ -264,12 +277,17 @@ for num in range(1,len(files)+1):
     df_garden_homo['mutation'] = df_garden_homo['mutation'].apply(remove_space)
     df_garden_homo['all_mut'] = df_garden_homo['mutation'].apply(all_mut)
     df_mut = df_mut.append(df_garden_homo.where(df_garden_homo['all_mut']==True).dropna()) 
-    #df_mut['testis'] = df_mut['mutation'].apply(testis)
+```    
+
+we added a column with name of gene.
+we added gene-expresstion data socre in the testis.
+
+```   
 df_mut['mutation_gene_name'] = df_mut['mutation'].apply(gene_name)
 df_mut = pd.merge(df_mut, df_testis[['genes','r-testis']], how='left',left_on=['mutation_gene_name'],right_on = ['genes'])
-    #df_mut['mutation_gene_name'].apply(score)
-    #df_testis =  df_testis.append(df_mut.where(df_mut['testis']==True).dropna())
-
 df_mut.to_excel(f'all_mut_merge{num:03}.xlsx')
 
 ```
+
+finaly, we got excel file with list of 2855 genes, with gene expression data (range 0-1).
+if we look on high r-testis value, we can see several intresting genes.
