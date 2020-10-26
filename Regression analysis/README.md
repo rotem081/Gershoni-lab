@@ -41,7 +41,8 @@ download the database bulls_paramaters.xlsx
 
 ## Script:
 open test_least_square.py and run the script.
-first we import all requierd functions:'
+<br> first we import all requierd functions
+
 ```
 from scipy.optimize import least_squares,dual_annealing,shgo
 import numpy as np
@@ -50,13 +51,11 @@ import pandas as pd
 import os
 ```
 
-we defiend two functions Normalize and least_square. 
-we must adjucting values measured on different scales to a notionally common scale. 
-we used the standard score formula: paramater minus mean, diveded by standerd diviation.
-we normalized the effect values and the quality parameters values.
+we defiend two functions: Normalize and least_square.
+Normalize get an array of numbers and return a new array with zero mean and std=1 
+<br> this funciton is useful because we need that all parameters have the same mean and std,
+for the least_square function.
 
-Normalize function get one parameter, one sperm quality parameter taken from 'bulls_paramaters.xlsx',
-and return the normalized paramater
 ```
 def Normalize(x):
     mu = np.mean(x) 
@@ -64,29 +63,33 @@ def Normalize(x):
     return (x-mu)/sigma
 ```
 
-Least_square function get x parameter- initial guess, and return  ***
+least_square function get array of coeffecients, the function load the data from existing 
+verible in the envieroment and return the distance between the predicted and measured effect
 
 ```
-def least_square(x): ***x??
+def least_square(x):
     # data : each row is a bull, each column is a parmeter
     data = np.array(normalized_parameters)
     # effect corresponding to the bulls in data. first effect belong to bull
     # in first row and so on
     effect = np.array(df_effect) ***why not normalized?
-  
-    return np.linalg.norm(np.dot(data,x)-effect) ***dot??
+    
+    # dot is matrix multplication data*X = predicted effect.
+    # norm calculte the size of the total distance between predicted and measuerd effect
+    return np.linalg.norm(np.dot(data,x)-effect) 
 ```  
 
-we used pd.read_excel to turn data from excel to Dataframe in python
+using pd.read_excel to turn data from excel to dataframe
+
 ```
-DIR = r'C:\Users\Rotem\Desktop\lab\Part A'
+DIR = r'{path to the excel file}' # fill directory hear
 # read excel file
-test = pd.read_excel(os.path.join(DIR, 'regression.xlsx'), index_col=None)
-# 25 bulls 
+test = pd.read_excel(os.path.join(DIR, 'bulls_paramaters.xlsx'), index_col=None)
 bulls = test[:25]
 ```
 
-we normalized the effect values and speem quality parameters, using Normalize function
+normalize the effect values and parameters, by calling the Normalize function
+
 ```
 # the effect
 df_effect = bulls['effect'].to_numpy()
@@ -99,25 +102,20 @@ df_parameters = bulls[['viable %', 'Depolarized  %','Viable spz ROS+',
 normalized_parameters = Normalize(df_parameters)
 ```
 
-we set initial guess (x0)   why?
-we set bounds for variables (min, max) pairs for the parameters- randomaly we picked 20-(-20) why?
-
+we set bounds for coeffienct (min, max), we picked 20-(-20) after trial and error.
+we used the function dual_annealing to find minimum in the function least square 
+(distance between predicted and measured effect).
+dual_annealing get function, bounds and seed (used for randomization) and return 
+the minimum of the function
 ```
-# initial guess. Should have same number of elements as the number of 
-# columns in data
-x0 = np.array([0.4,0.3,0.35,0.15,1,1,0.1])
-# 7 PARAMETERS and each have max and min(2) bounderis #based on manual chack
 bounds = np.ones((7,2))*20
 bounds[:,0] *= -1 #the second column become -x
-```
-
-we used the function dual_annealing to find minimum in the function least square
-dual_annealing get function, bounds and seed and return the minimum of the function.
-```
 # dual_annealing find min in a function that it recive
 result = dual_annealing(least_square,bounds,seed = 42)
 ```
 
+then we calculate the R squre of the results, the set of coeffesient that gave the min of least square.
+<br>R squre calculation was taken from https://en.wikipedia.org/wiki/Coefficient_of_determination
 
 ```
 # the effect is defined here again to calculate r^2
@@ -125,8 +123,4 @@ effect = np.array(normalized_effect)
 ss_tot = sum((effect-np.mean(effect))**2)
 ss_res = least_square(result.x)**2
 r2 = 1 - ss_res/ss_tot
-
-print(result.x)
 ```
-
-## Special Comments:
