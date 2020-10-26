@@ -1,0 +1,22 @@
+. /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
+. /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
+. /data/bin/miniconda2/envs/gatk4-v4.1.3.0/env_gatk4.sh;
+. /data/bin/miniconda2/envs/ensemblVep-v97.3/env_ensembl-vep.sh;
+
+bwa mem /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa sample_1.fastq sample_2.fastq > sample_name.sam &&
+picard RevertSam I=sample_name.sam O=sample_name_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+picard AddOrReplaceReadGroups I=sample_name_u.bam O=sample_name_rg.bam RGID=sample_name RGSM=sample_name RGLB=wgsim RGPU=shlee RGPL=illumina &&
+picard MergeBamAlignment ALIGNED=sample_name.sam UNMAPPED=sample_name_rg.bam O=sample_name_m.bam R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+picard MarkDuplicates INPUT=sample_name_m.bam OUTPUT=sample_name_md.bam METRICS_FILE=sample_name_md.bam.txt OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
+set -o pipefail;
+picard SortSam INPUT=sample_name_md.bam OUTPUT=sample_name_sorted.bam SORT_ORDER=coordinate &&
+picard SetNmMdAndUqTags R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa INPUT=sample_name_sorted.bam OUTPUT=sample_name_snaut.bam CREATE_INDEX=true &&
+gatk HaplotypeCaller -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -I sample_name_snaut.bam -O sample_name.g.vcf -ERC GVCF -bamout sample_name_hc.bam &&
+rm sample_1.fastq;
+rm sample_2.fastq;
+rm sample_name.sam;
+rm sample_name_u.bam;
+rm sample_name_rg.bam;
+rm sample_name_m.bam;
+rm sample_name_md.bam;
+rm sample_name_sorted.bam

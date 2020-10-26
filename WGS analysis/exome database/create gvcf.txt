@@ -1,0 +1,29 @@
+. /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
+. /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
+. /data/bin/miniconda2/envs/gatk4-v4.1.3.0/env_gatk4.sh;
+. /data/bin/miniconda2/envs/ensemblVep-v97.3/env_ensembl-vep.sh;
+. /data/bin/miniconda2/envs/parallelFastqDump-v0.6.5/env_parallel-fastq-dump.sh
+
+parallel-fastq-dump -s ERR1600413 -t 8 --tmpdir . --split-files --gzip &&
+gunzip ERR1600413_1.fastq &&
+gunzip ERR1600413_2.fastq &&
+bwa mem /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa ERR1600413_1.fastq ERR1600413_2.fastq > ERR1600413.sam &&
+picard RevertSam I=ERR1600413.sam O=ERR1600413_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+picard AddOrReplaceReadGroups I=ERR1600413_u.bam O=ERR1600413_rg.bam RGID=ERR1600413 RGSM=ERR1600413 RGLB=wgsim RGPU=shlee RGPL=illumina &&
+picard MergeBamAlignment ALIGNED=ERR1600413.sam UNMAPPED=ERR1600413_rg.bam O=ERR1600413_m.bam R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+picard MarkDuplicates INPUT=ERR1600413_m.bam OUTPUT=ERR1600413_md.bam METRICS_FILE=ERR1600413_md.bam.txt OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
+set -o pipefail;
+picard SortSam INPUT=ERR1600413_md.bam OUTPUT=ERR1600413_sorted.bam SORT_ORDER=coordinate &&
+picard SetNmMdAndUqTags R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa INPUT=ERR1600413_sorted.bam OUTPUT=ERR1600413_snaut.bam CREATE_INDEX=true &&
+gatk HaplotypeCaller -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -I ERR1600413_snaut.bam -O ERR1600413.g.vcf -ERC GVCF -bamout ERR1600413_hc.bam &&
+rm ERR1600413_1.fastq;
+rm ERR1600413_2.fastq;
+rm ERR1600413.sam;
+rm ERR1600413_u.bam;
+rm ERR1600413_rg.bam;
+rm ERR1600413_m.bam;
+rm ERR1600413_md.bam;
+rm ERR1600413_sorted.bam;
+rm ERR1600413_snaut.bam;
+rm ERR1600413_snaut.bai;
+rm ERR1600413_hc.bam;
