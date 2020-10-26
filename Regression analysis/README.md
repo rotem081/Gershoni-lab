@@ -26,7 +26,7 @@ this will enable you to reproduce the PLS figures from the work
 ## Environment:
 #### 1. Using Anaconda recipe:
 download python 3.7 from https://www.python.org/downloads/
-<br> download Anaconda from https://www.anaconda.com/products/individual and Lanch speyer package (python 3.7)
+<br> download Anaconda from https://www.anaconda.com/products/individual and launch Spyder editor (python 3.7)
 
 #### 2. Using pip:
 * make sure that your virtual environment is installed with python 3.7 or more advaced version
@@ -37,10 +37,10 @@ $ pip install <function_name>
 ```
 
 ## Datadase:
-download the database found under the name 'bulls_paramaters.xlsx', to set the parameters
+download the database bulls_paramaters.xlsx
 
 ## Script:
-open python script name test_least_square.py in spyder environment and run the script.
+open test_least_square.py and run the script.
 first we import all requierd functions:'
 ```
 from scipy.optimize import least_squares,dual_annealing,shgo
