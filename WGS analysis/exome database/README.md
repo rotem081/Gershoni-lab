@@ -1,4 +1,4 @@
-# varients filtretion of 5 bulls (family 4)
+# variants filtration of 5 bulls (family 4)
 
 list of files:
 1. create gvcf.txt (discussed in 'WGS anaysis')
@@ -10,12 +10,12 @@ list of files:
 7.exome_analysis.py
 
 ## Description:
-In this repository we arranged the procedure of assessment of genomic varients.
-we builet dedicated python script, that uses the VCF parser (PyVCF), to filter and assess the varients. 
+In this repository we arranged the procedure of assessment of genomic variants.
+we built dedicated python script, that uses the VCF parser (PyVCF), to filter and assess the variants. 
 
 ## Environment:
 #### 1. Using mobaXterm and anaconda:
-make sure that your virtual environment is installed with python 3.7 or more advaced version
+make sure that your virtual environment is installed with python 3.7 or more advanced version
 in the anaconda platform, click on environments > base(root) > open Terminal.
 in Terminal window download the function we used; numpy, pandas, PyVCF, itertools,datetime, time, os
 ```
@@ -27,8 +27,8 @@ we downloaded fastq files of short reads from the Sequences Reads Archive (SRA) 
 a publicly available repository of raw sequencing data (https://www.ncbi.nlm.nih.gov/sra). 
 
 ## Script: (create_gvcf.txt)
-open python script name multisample_exome.py in spyder and run the script.
-first we import all requierd functions:
+open multisample_exome.py
+first we import all required functions:
 
 ```
 import numpy as np
@@ -40,8 +40,8 @@ import time
 import os
 ```
 
-define get_data_from_record function. the function get one record (line) form the multi-sample varients file.
-and retrun a dataframe
+define get_data_from_record function. the function gets one record (line) form the multi-sample variants file.
+and return a dataframe
 
 ```
 #building dataframe from the vcf file records extracting only desirable parameters
@@ -64,7 +64,7 @@ def get_data_from_record(record):
     return data
 ```
 
-we defiened the dataframe's columns  
+we defined the columns  
 
 ```
 columns = ['Chromosome',
@@ -84,7 +84,7 @@ columns = ['Chromosome',
 
 ```
 
-we read multi-sample varients file 
+we read multi-sample variants file 
 and print the samples count (269 bulls)
 
 ```
@@ -94,10 +94,10 @@ reader = vcf.Reader(filename=r'C:\variant_effect_output.vcf.gz', compressed=Fals
 
 we than update the dataframe in a loop; 'get_data_from_record' function works on 1000 records every time
 until the end of the reader. the output appended to the dataframe
-we print the time left for the end of the dataframe biulding 
+we print the time left for the end of the dataframe building  
 when 100,000 passes, we convert df to pickle file with the simple function 'df.to_pickle'
 and reset a new dataframe.
-in the end, all pickle files saved in a dedecated folder on the computer.
+in the end, all pickle files saved in a dedicated folder on the computer.
 
 ```
 counter = 1 #update rows that done
@@ -130,8 +130,8 @@ except:
     raise  #raise the error
 ```
 
-open python script name merge_pkl_exome.py in spyder and run the script.
-first we import all requierd functions:
+open merge_pkl_exome.py
+first we import all required functions:
 
 ```
 import numpy as np
@@ -160,8 +160,8 @@ df.to_pickle(f'merge{file_counter:03}.pkl') #save file
 print(f'saved progress in merge {file_counter:03}') # :03 three digits
 ```
 
-open python script name exome_analysis.py in spyder and run the script.
-first we import all requierd functions:
+in spyder and run the script.
+first we import all required functions:
 
 ```
 import glob 
@@ -177,12 +177,13 @@ font = {'family' : 'normal',
 matplotlib.rc('font', **font)
 ```
 
-we create a loop that pass on each merge pickle file and extract importent info to a dataframe.
-we filterd low quality readsand row with loess than 10 bulls genotype (samples count).
-we merged data from the exome database to our new dataframe: Allele frequency,Allele number and Inbreeding.
-we filtered variatent that have this pattern of gynotype: garden is homozygot and the other bulls are hetrozygot (df_garden_homo)
-we filtered variatent that have AF > 0.5
-we added a column with name of effect/consequences of the varient ('mutation')
+we create a loop that pass on each merge pickle file and extract important info to a dataframe.
+we filtered low quality reads and row with loess than 10 bulls genotype (samples count).
+we merged data from the exome database to our new dataframe: Allele frequency, Allele number and Inbreeding.
+we filtered variant that have this pattern of genotype: garden is homozygote and the other bulls are hetrozygot (df_garden_homo)
+we filtered variants that have AF > 0.5
+we added a column with name of effect/consequences of the variants ('mutation')
+
 
 ```
 files = glob.glob('merge*_exome.pkl') #find all the files type pkl
@@ -221,7 +222,7 @@ ax.set_xlabel('Allele frequency')
 ax.set_ylabel('number of variants(1X10^6)')
 ```
 
-create an histogram of vareients inbreeding 
+create an histogram of inbreeding 
 
 ``` 
 #inbreeding after filtring
