@@ -117,7 +117,7 @@ picard SortSam INPUT=output_md.bam OUTPUT=output_sorted.bam SORT_ORDER=coordinat
 ```
 
 we used SetNmMdAndUqTags, that takes in a coordinate-sorted BAM and calculate the NM, MD and UQ 
-<brby competing with the reference
+<br>by competing with the reference
 <br>NM = Edit distance to the reference
 <br>MD = String encoding mismatched and deleted reference bases
 <br>UQ = Phred likelihood of the segment, conditional on the mapping being correct
