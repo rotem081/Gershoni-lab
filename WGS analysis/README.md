@@ -33,7 +33,8 @@ from the same familial cluster.
 raw data (fastq files) was undergone bioinformatics analysis:
 1. In the first work, establishment of the exome database, the obtained fastq files short reads from
 the Sequences Reads Archive (SRA) from the NCBI server (https://www.ncbi.nlm.nih.gov/sra).
-2. In the second work, the genome analysis of one family, the obtained fastq files sent from the sequencing company.
+2. In the second work, the genome analysis of one family, the obtained fastq files sent from 
+the sequencing company.
 
 
 ## Environment:
@@ -91,7 +92,8 @@ picard RevertSam I=output.sam O=output_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_
 first processing step is performed per-read group
 
 ```
-picard AddOrReplaceReadGroups I=output_u.bam O=output_rg.bam RGID=output RGSM=output RGLB=wgsim RGPU=shlee RGPL=illumina &&
+picard AddOrReplaceReadGroups I=output_u.bam O=output_rg.bam RGID=output RGSM=output 
+RGLB=wgsim RGPU=shlee RGPL=illumina &&
 ```
 
 we produced a third BAM file (output_m.bam) that has alignment data (output.sam)
@@ -100,7 +102,8 @@ we produced a third BAM file (output_m.bam) that has alignment data (output.sam)
 ```
 picard MergeBamAlignment ALIGNED=output.sam UNMAPPED=output_rg.bam O=output_m.bam R= ./path to reference file
 SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 
-PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS 
+ATTRIBUTES_TO_RETAIN=XA &&
 ```
 
 we mark duplicates to mitigate biases introduced by data generation steps such as PCR amplification.
@@ -113,13 +116,15 @@ set -o pipefail;
 picard SortSam INPUT=output_md.bam OUTPUT=output_sorted.bam SORT_ORDER=coordinate &&
 ```
 
-we used SetNmMdAndUqTags, that takes in a coordinate-sorted BAM and calculate the NM, MD and UQ by competing with the reference
+we used SetNmMdAndUqTags, that takes in a coordinate-sorted BAM and calculate the NM, MD and UQ 
+<brby competing with the reference
 <br>NM = Edit distance to the reference
 <br>MD = String encoding mismatched and deleted reference bases
 <br>UQ = Phred likelihood of the segment, conditional on the mapping being correct
 
 ```
-picard SetNmMdAndUqTags R=<path to reference file> INPUT=output_sorted.bam OUTPUT=output_snaut.bam CREATE_INDEX=true &&
+picard SetNmMdAndUqTags R=<path to reference file> INPUT=output_sorted.bam 
+OUTPUT=output_snaut.bam CREATE_INDEX=true &&
 ```
 
 Call SNPs and indels variants via local re-assembly of haplotypes was generate by HaplotypeCaller.
@@ -127,10 +132,12 @@ Call SNPs and indels variants via local re-assembly of haplotypes was generate b
 <br>it discards the existing mapping information and completely reassembles the reads in that region.
 <br>This allows the HaplotypeCaller to be more accurate when calling regions that are traditionally
 <br>difficult to call (output_hc.bam).
-<br>for more information on HaplotypeCaller: https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller
+<br>for more information on HaplotypeCaller: 
+<br>https://gatk.broadinstitute.org/hc/en-us/articles/360037225632-HaplotypeCaller
 
 ```
-gatk HaplotypeCaller -R ./path to reference file -I output_snaut.bam -O output.g.vcf -ERC GVCF -bamout output_hc.bam &&
+gatk HaplotypeCaller -R ./path to reference file -I output_snaut.bam -O output.g.vcf 
+-ERC GVCF -bamout output_hc.bam &&
 ```
 
 HaplotypeCaller runs per-sample to generate an intermediate GVCF (output.g.vcf).
@@ -138,14 +145,17 @@ HaplotypeCaller runs per-sample to generate an intermediate GVCF (output.g.vcf).
 <br>this done in parallel, using 64 cores and 280 memory in the HPC options
 
 ```
-gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R ./path to reference file -V output_sample_1.g.vcf -V output_sample_2.g.vcf -V output_sample_3.g.vcf -V .... -O combine_all.g.vcf;
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC 
+-XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R ./path to reference file 
+-V output_sample_1.g.vcf -V output_sample_2.g.vcf -V output_sample_3.g.vcf -V .... -O combine_all.g.vcf;
 ```
 
 this combine_all file than be used in GenotypeGVCFs for joint genotyping of multiple samples
 
 ```
-gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 
--XX:+UseTLAB" GenotypeGVCFs -R ./path to reference file -V combine_all.g.vcf -O multisample.vcf;
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC 
+-XX:ParallelGCThreads=16 -XX:+UseTLAB" GenotypeGVCFs -R ./path to reference file -V combine_all.g.vcf 
+-O multisample.vcf;
 ```
 
 Finally, we used Variant Effect Predictor (VEP) for annotation.
