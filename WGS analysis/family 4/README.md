@@ -11,29 +11,21 @@ list of files:
 8. GTEx.V8.Testis-specificity.r-scores.csv
 
 ## Description:
-In this repository we arranged the procedure of assessment of genomic varients.
-we builet dedicated python script, that uses the VCF parser (PyVCF), to filter and assess the varients. 
+In this repository we arranged the genomic varients analysis and filtration
+we provide a dedicated python script to filter and assess the varients that was found in the WGS analysis. 
 
-first, Variants were removed if they had quality score less than <30.
 ## Environment:
 #### 1. Using mobaXterm and anaconda:
-* make sure that your virtual environment is installed with python 3.7 or more advaced version
-in the anaconda platform, click on environments > base(root) > open Terminal.
-in Terminal window download the function we used; numpy, pandas, PyVCF, itertools,datetime, time, os
-```
-$ pip install <function_name> 
-```
+Make sure that your virtual environment is installed with python 3.7 or more advaced version
+Download the function we used; numpy, pandas, PyVCF, itertools,datetime, time, os
 
 ## Database:
-download csv file with list of genes that expressed in the testis and the level of expression: 
+Download csv file with list of genes that expressed in the testis and the level of expression: 
 GTEx.V8.Testis-specificity.r-scores.csv.
 
-we downloaded the annoteted multi-sample varients file (discussed in 'WGS anaysis') 
-from the UNIX enviroment (from mobaXterm server) to windows.
-
 ## Script: (create_gvcf.txt)
-open python script name multisample_family4.py in spyder and run the script.
-first we import all requierd functions:
+Open multisample_family4.py and run the script.
+first we import all requierd functions
 
 ```
 import numpy as np
@@ -45,8 +37,8 @@ import time
 import os
 ```
 
-define get_data_from_record function. the function get one record (line) form the multi-sample varients file.
-and retrun a dataframe
+Define dget_data_from_record function: the function get one record form the multi-sample varients file that created in
+'WGS analysis' section, and retrun a dataframe
 
 ```
 def get_data_from_record(record):
@@ -66,7 +58,7 @@ def get_data_from_record(record):
     return data
 ```
 
-we defiened the dataframe's columns  
+Defiene the dataframe's columns  
 
 ```
 columns = ['Chromosome',
@@ -85,7 +77,7 @@ columns = ['Chromosome',
 df = pd.DataFrame(columns=columns)
 ```
 
-we read multi-sample varients file 
+We read multi-sample varients file 
 and print the samples count (5 bulls in family 4)
 
 ```
@@ -94,10 +86,10 @@ print(len(reader.samples)) #samples count
 
 ```
 
-we than update the dataframe in a loop; 'get_data_from_record' function works on 1000 records every time
-until the end of the reader. the output appended to the dataframe
-we print the time left for the end of the dataframe biulding 
-when 100,000 passes, we convert df to pickle file with the simple function 'df.to_pickle'
+Then, we update the dataframe using loop. 'get_data_from_record' function works on 1000 records every time,
+and output is added to the dataframe.
+we print the time left for the end.
+when 100,000 rows passes, we convert df to pickle file with the simple function 'df.to_pickle'
 and reset a new dataframe.
 in the end, all pickle files saved in a dedecated folder on the computer.
 
