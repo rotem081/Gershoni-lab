@@ -6,7 +6,7 @@ files included:
 
 ## Description:
 
-In this repository we arranged the procedure we used to predict fertility effects from measured sperm quality parameters.
+In this repository we arranged the procedure of prediction fertility effects from measured sperm quality parameters.
 
 In this part the sperm quality parameters that were measured by Flow-cytometry, were used to assess the correlation 
 with fertility traits. This relationship was analysed by multiple regression with partial least squares (PLSs).
