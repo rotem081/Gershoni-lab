@@ -78,7 +78,7 @@ df = pd.DataFrame(columns=columns)
 ```
 
 We read multi-sample varients file 
-and print the samples count (5 bulls in family 4)
+and print the number of samples (5 bulls)
 
 ```
 reader = vcf.Reader(filename=r'path\variant_effect_output.vcf.gz', compressed=False)
@@ -86,12 +86,13 @@ print(len(reader.samples)) #samples count
 
 ```
 
-Then, we update the dataframe using loop. 'get_data_from_record' function works on 1000 records every time,
-and output is added to the dataframe.
+Then, we update the dataframe using loop. 'get_data_from_record' get 1000 records every time,
+return data that will be added to the dataframe.
 we print the time left for the end.
 when 100,000 rows passes, we convert df to pickle file with the simple function 'df.to_pickle'
 and reset a new dataframe.
-in the end, all pickle files saved in a dedecated folder on the computer.
+in the end, we get 137 pickle files, each with 100,000 records.
+
 
 ```
 counter = 1 #update rows that done
@@ -124,8 +125,8 @@ except:
     raise  #raise the error
 ```
 
-open python script name merge_pkl_family4.py in spyder and run the script.
-first we import all requierd functions:
+open merge_pkl_family4.py
+first we import all requierd functions
 
 ```
 import numpy as np
@@ -133,9 +134,9 @@ import glob
 import pandas as pd
 files = glob.glob('*.pkl') #find all the files type pkl
 ```
-we read the files, one after the other, and convert it to dataframe
-we update the dataframe and print a massage about the progress
-In the end, we create several merged pickle files, contain 10 simple pickle files
+We read the files, one after the other, and convert it to dataframe
+We update the dataframe and print a massage about the progress 
+In the end, we create 14 merged pickle files, contain 10 pickle files (that were created in the previous script)
 
 ```
 df = pd.read_pickle(files[0])
@@ -154,8 +155,8 @@ df.to_pickle(f'merge{file_counter:03}.pkl') #save file
 print(f'saved progress in merge {file_counter:03}') # :03 three digits
 ```
 
-open python script name family4_analysis.py in spyder and run the script.
-first we import all requierd functions:
+Open family4_analysis.py
+first we import all requierd functions
 
 ```
 import glob 
@@ -166,8 +167,8 @@ import matplotlib
 import re
 ```
 
-we defenied allele list, mutation_list, list of gene expressed in testis,
-the dataframe of exome database  and several short function that help us with the analysis
+We defenie allele list, mutation_list, list of gene expressed in testis,
+the exome database (in dataframe) and several short function that will help us in the analysis
 
 ```
 font = {'family' : 'normal',
@@ -228,12 +229,13 @@ def gene_name(lst):
     return lst[3]
 ```
 
-we create a loop that pass on each merge pickle file, extract importent info to a dataframe.
-we filterd low quality reads.
-we merged data from the exome database to our new dataframe: Allele frequency,Allele number and Inbreeding.
-we filtered variatent that have this pattern of gynotype: garden is homozygot and the other bulls are hetrozygot (df_garden_homo)
-we filtered variatent that have AF > 0.5
-we added a column with name of effect/consequences of the varient ('mutation')
+We create a loop that pass on each merge pickle file, extract importent info to a dataframe.
+We filterd low quality reads (less than <30)
+We merged data from exome database to our new dataframe: Allele frequency,Allele number and Inbreeding.
+We filtered variatent that have this pattern of gynotype: 'healty' bull is homozygot and the other bulls are hetrozygot (df_garden_homo)
+We filtered variatent that have AF > 0.5
+We added a column- name of effect/consequences of the varient ('mutation')
+
 ```
 #family 4 dataframe
 files = glob.glob('merge*.pkl') #find all the files type pkl
@@ -271,8 +273,8 @@ for num in range(1,len(files)+1):
     df_mut = df_mut.append(df_garden_homo.where(df_garden_homo['all_mut']==True).dropna()) 
 ```    
 
-we added a column with name of gene.
-we added gene-expresstion data socre in the testis.
+we added a column with gene name.
+we added gene-expresstion in the testis.
 
 ```   
 df_mut['mutation_gene_name'] = df_mut['mutation'].apply(gene_name)
@@ -282,4 +284,4 @@ df_mut.to_excel(f'all_mut_merge{num:03}.xlsx')
 ```
 
 finaly, we got excel file with list of 2855 genes, with gene expression data (range 0-1).
-if we look on high r-testis value, we can see several intresting genes.
+we can arrange the r-testis values from high to the small.
