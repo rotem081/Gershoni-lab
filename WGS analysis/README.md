@@ -60,7 +60,7 @@ performance computational (HPC) platform
 
 ## Script:
 Open create_gvcf.txt and send it as a job
-first we have to write the tools' paths
+<br>first we have to write the tools' paths
 
 ```
 . /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
