@@ -1,4 +1,4 @@
-# varients filtretion of 5 bulls (family 4)
+# variants filtretion
 
 list of files:
 1. create gvcf_family4.txt (discussed in 'WGS anaysis')
