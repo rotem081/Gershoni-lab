@@ -1,4 +1,0 @@
-.  /data/bin/miniconda2/envs/tabix-v0.2.6/env_tabix.sh;
-. /data/bin/miniconda2/envs/ensemblVep-v98.2/env_ensembl-vep.sh;
-
-vep -i multisample.vcf.gz --format vcf -o variant_effect_output.vcf --vcf --fields Allele,Consequence,IMPACT,SYMBOL,Gene,Feature_type,Feature,BIOTYPE,EXON,INTRON,HGVSc,HGVSp,cDNA_position,CDS_position,Protein_position,Amino_acids,Codons,Existing_variation,SIFT --species bos_taurus --cache --fasta /data/bin/ensemblVep-v98/ensembl-vep/Cache/bos_taurus/98_ARS-UCD1.2/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa.gz --offline --dir_cache /data/bin/ensemblVep-v98/ensembl-vep/Cache --dir_plugins /data/bin/ensemblVep-v98/ensembl-vep/Plugins --synonyms /data/bin/ensemblVep-v98/ensembl-vep/Cache/bos_taurus_refseq/98_ARS-UCD1.2/chr_synonyms.txt -e -fork 14 --force_overwrit 
