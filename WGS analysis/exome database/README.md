@@ -1,19 +1,60 @@
-# variants filtration of 5 bulls (family 4)
-
-list of files:
-1. create gvcf.txt (discussed in 'WGS anaysis')
-2. ex_comb.txt (discussed in 'WGS anaysis')
-3. ex_genotype.txt (discussed in 'WGS anaysis')
-4. vep_exome.txt (discussed in 'WGS anaysis')
-5. multisample_exome.py
-6. merge_pkl_exome.py
-7.exome_analysis.py
-
 ## Description:
 In this repository we arranged the procedure of assessment of genomic variants.
 we built dedicated python script, that uses the VCF parser (PyVCF), to filter and assess the variants. 
 
-## Environment:
+## Database:
+we downloaded fastq files of short reads from the Sequences Reads Archive (SRA) from the NCBI server,
+a publicly available repository of raw sequencing data (https://www.ncbi.nlm.nih.gov/sra). 
+
+
+# analysis pipeline (from fastq to gvcf)
+txt file that contains the commands and the path to the relevent tools (running on HPC)
+
+. /data/bin/miniconda2/envs/picard-v2.20.2/env_picard.sh;
+. /data/bin/miniconda2/envs/samtools-v1.9/env_samtools.sh;
+. /data/bin/miniconda2/envs/gatk4-v4.1.3.0/env_gatk4.sh;
+. /data/bin/miniconda2/envs/ensemblVep-v97.3/env_ensembl-vep.sh;
+. /data/bin/miniconda2/envs/parallelFastqDump-v0.6.5/env_parallel-fastq-dump.sh
+
+parallel-fastq-dump -s ERR1600413 -t 8 --tmpdir . --split-files --gzip &&
+gunzip ERR1600413_1.fastq &&
+gunzip ERR1600413_2.fastq &&
+bwa mem /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa ERR1600413_1.fastq ERR1600413_2.fastq > ERR1600413.sam &&
+picard RevertSam I=ERR1600413.sam O=ERR1600413_u.bam ATTRIBUTE_TO_CLEAR=XS ATTRIBUTE_TO_CLEAR=XA &&
+picard AddOrReplaceReadGroups I=ERR1600413_u.bam O=ERR1600413_rg.bam RGID=ERR1600413 RGSM=ERR1600413 RGLB=wgsim RGPU=shlee RGPL=illumina &&
+picard MergeBamAlignment ALIGNED=ERR1600413.sam UNMAPPED=ERR1600413_rg.bam O=ERR1600413_m.bam R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa SORT_ORDER=unsorted CLIP_ADAPTERS=false ADD_MATE_CIGAR=true MAX_INSERTIONS_OR_DELETIONS=-1 PRIMARY_ALIGNMENT_STRATEGY=MostDistant UNMAP_CONTAMINANT_READS=false ATTRIBUTES_TO_RETAIN=XS ATTRIBUTES_TO_RETAIN=XA &&
+picard MarkDuplicates INPUT=ERR1600413_m.bam OUTPUT=ERR1600413_md.bam METRICS_FILE=ERR1600413_md.bam.txt OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 ASSUME_SORT_ORDER=queryname &&
+set -o pipefail;
+picard SortSam INPUT=ERR1600413_md.bam OUTPUT=ERR1600413_sorted.bam SORT_ORDER=coordinate &&
+picard SetNmMdAndUqTags R=/home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa INPUT=ERR1600413_sorted.bam OUTPUT=ERR1600413_snaut.bam CREATE_INDEX=true &&
+gatk HaplotypeCaller -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -I ERR1600413_snaut.bam -O ERR1600413.g.vcf -ERC GVCF -bamout ERR1600413_hc.bam &&
+rm ERR1600413_1.fastq;
+rm ERR1600413_2.fastq;
+rm ERR1600413.sam;
+rm ERR1600413_u.bam;
+rm ERR1600413_rg.bam;
+rm ERR1600413_m.bam;
+rm ERR1600413_md.bam;
+rm ERR1600413_sorted.bam;
+rm ERR1600413_snaut.bam;
+rm ERR1600413_snaut.bai;
+rm ERR1600413_hc.bam;
+
+
+# combine all gvcf
+(first combine to groups and than combine all groups to one large gvcf)
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" CombineGVCFs -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -V combine_file_1.g.vcf -V combine_file_2.g.vcf -V combine_file_3.g.vcf -V combine_file_4_1.g.vcf -V combine_file_4_2.g.vcf -V combine_file_5.g.vcf -V combine_file_6.g.vcf -V combine_file_7.g.vcf -V combine_file_8.g.vcf -V combine_file_9.g.vcf -V combine_file_10.g.vcf -V combine_file_11.g.vcf -V combine_file_12.g.vcf -V combine_file_13.g.vcf -V combine_file_14.g.vcf -V combine_file_15.g.vcf -V combine_file_16.g.vcf -V combine_file_17.g.vcf -V combine_file_18.g.vcf -V combine_file_19.g.vcf -V combine_file_20.g.vcf -O combine_all_exomes.g.vcf;
+
+
+# genotyping (from multisample gvcf to vcf)
+gatk --java-options "-server -d64 -Xms280G -Xmx280G -XX:NewSize=250G -XX:+UseConcMarkSweepGC -XX:ParallelGCThreads=16 -XX:+UseTLAB" GenotypeGVCFs -R /home/ARO.local/rotemv/Projects/SRA/REF_files/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa -V combine_all_exomes.g.vcf -O multisample.vcf;
+
+
+# vep stage
+vep -i multisample.vcf.gz --format vcf -o variant_effect_output.vcf --vcf --fields Allele,Consequence,IMPACT,SYMBOL,Gene,Feature_type,Feature,BIOTYPE,EXON,INTRON,HGVSc,HGVSp,cDNA_position,CDS_position,Protein_position,Amino_acids,Codons,Existing_variation,SIFT --species bos_taurus --cache --fasta /data/bin/ensemblVep-v98/ensembl-vep/Cache/bos_taurus/98_ARS-UCD1.2/Bos_taurus.ARS-UCD1.2.dna.toplevel.fa.gz --offline --dir_cache /data/bin/ensemblVep-v98/ensembl-vep/Cache --dir_plugins /data/bin/ensemblVep-v98/ensembl-vep/Plugins --synonyms /data/bin/ensemblVep-v98/ensembl-vep/Cache/bos_taurus_refseq/98_ARS-UCD1.2/chr_synonyms.txt -e -fork 14 --force_overwrit 
+
+
+# analysis vcf with Pyvcf python tools
 #### 1. Using mobaXterm and anaconda:
 make sure that your virtual environment is installed with python 3.7 or more advanced version
 in the anaconda platform, click on environments > base(root) > open Terminal.
@@ -22,12 +63,7 @@ in Terminal window download the function we used; numpy, pandas, PyVCF, itertool
 $ pip install <function_name> 
 ```
 
-## Database:
-we downloaded fastq files of short reads from the Sequences Reads Archive (SRA) from the NCBI server,
-a publicly available repository of raw sequencing data (https://www.ncbi.nlm.nih.gov/sra). 
-
-## Script: (create_gvcf.txt)
-open multisample_exome.py
+open python script multisample_exome.py
 first we import all required functions:
 
 ```
